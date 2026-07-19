@@ -12,6 +12,7 @@ import {
 } from "./coingecko.ts";
 import {
   type ExchangeId,
+  getExchangeUsdtSpotMarkets,
   getExchangeMonthlyCandles,
   getExchangeWeeklyCandles,
   getMultiExchangeUsdtSpotMarkets,
@@ -76,6 +77,12 @@ export type ScanResponse = {
     | "TOP_200"
     | "TOP_500"
     | "BINANCE_USDT"
+    | "BYBIT_USDT"
+    | "OKX_USDT"
+    | "KUCOIN_USDT"
+    | "GATE_USDT"
+    | "MEXC_USDT"
+    | "BITGET_USDT"
     | "MULTI_EXCHANGE_USDT"
     | "MULTI_EXCHANGE_ALL_MARKETS"
     | "AI"
@@ -293,6 +300,44 @@ export async function runAllBinanceUsdtScan({
     alerts,
   });
   scan.note = `All Binance USDT scan loaded ${markets.length} live spot markets. Market-cap filtering is disabled for this universe because Binance does not provide market-cap ranks.`;
+
+  return scan;
+}
+
+export async function runExchangeUsdtScan({
+  exchange,
+  settings = defaultSettings,
+  persist = false,
+  alerts = false,
+}: {
+  exchange: ExchangeId;
+  settings?: StrategySettings;
+  persist?: boolean;
+  alerts?: boolean;
+}) {
+  const markets = await getExchangeUsdtSpotMarkets(exchange);
+  const coins = markets.map((market) => ({
+    name: market.baseAsset,
+    symbol: market.symbol,
+    sourceSymbol: market.sourceSymbol,
+    exchange: market.exchange,
+    marketCapRank: 9999,
+    isStablecoin: isStablecoinSymbol(market.symbol),
+  }));
+  const scanSettings = {
+    ...settings,
+    topMarketCapFilter: false,
+  };
+  const scan = await runManualScan({
+    coins,
+    settings: scanSettings,
+    universe: `${exchange}_USDT` as ScanResponse["universe"],
+    persist,
+    alerts,
+    concurrency:
+      exchange === "BINANCE" ? undefined : getMultiExchangeScanConcurrency(),
+  });
+  scan.note = `${exchange} USDT scan loaded ${markets.length} live spot markets. Market-cap filtering is disabled for this universe because exchange APIs do not provide market-cap ranks.`;
 
   return scan;
 }

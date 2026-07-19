@@ -154,6 +154,32 @@ export function normalizeExchangeId(
     : "BINANCE";
 }
 
+export async function getExchangeUsdtSpotMarkets(
+  exchange: ExchangeId,
+): Promise<ExchangeMarket[]> {
+  switch (exchange) {
+    case "BYBIT":
+      return getBybitUsdtSpotMarkets();
+    case "OKX":
+      return getOkxUsdtSpotMarkets();
+    case "KUCOIN":
+      return getKucoinUsdtSpotMarkets();
+    case "GATE":
+      return getGateUsdtSpotMarkets();
+    case "MEXC":
+      return getMexcUsdtSpotMarkets();
+    case "BITGET":
+      return getBitgetUsdtSpotMarkets();
+    default:
+      return (await getBinanceUsdtSpotMarkets()).map((market) => ({
+        exchange: "BINANCE" as const,
+        symbol: market.symbol,
+        sourceSymbol: market.symbol,
+        baseAsset: market.baseAsset,
+      }));
+  }
+}
+
 export async function getMultiExchangeUsdtSpotMarkets({
   allowPartial = false,
   dedupe = true,
@@ -171,12 +197,7 @@ export async function getMultiExchangeUsdtSpotMarkets({
     bitgetSource,
   ] = await Promise.all([
     loadMarketSource("Binance", async () =>
-      (await getBinanceUsdtSpotMarkets()).map((market) => ({
-        exchange: "BINANCE" as const,
-        symbol: market.symbol,
-        sourceSymbol: market.symbol,
-        baseAsset: market.baseAsset,
-      })),
+      getExchangeUsdtSpotMarkets("BINANCE"),
     ),
     loadMarketSource("Bybit", getBybitUsdtSpotMarkets),
     loadMarketSource("OKX", getOkxUsdtSpotMarkets),

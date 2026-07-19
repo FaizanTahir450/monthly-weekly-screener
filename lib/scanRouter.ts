@@ -2,6 +2,7 @@ import {
   runAllBinanceUsdtScan,
   runCategoryScan,
   runConfiguredFeedScan,
+  runExchangeUsdtScan,
   runManualScan,
   runMultiExchangeUsdtScan,
   runTopCoinScan,
@@ -15,6 +16,12 @@ export type ScanUniverseParam =
   | "top200"
   | "top500"
   | "binance"
+  | "bybit"
+  | "okx"
+  | "kucoin"
+  | "gate"
+  | "mexc"
+  | "bitget"
   | "multi"
   | "multi-all"
   | "ai"
@@ -32,6 +39,12 @@ export const scanUniverses: ScanUniverseParam[] = [
   "top200",
   "top500",
   "binance",
+  "bybit",
+  "okx",
+  "kucoin",
+  "gate",
+  "mexc",
+  "bitget",
   "multi",
   "multi-all",
   "ai",
@@ -64,6 +77,48 @@ export async function runScanForUniverse({
       return runTopCoinScan({ limit: 500, settings, persist, alerts });
     case "binance":
       return runAllBinanceUsdtScan({ settings, persist, alerts });
+    case "bybit":
+      return runExchangeUsdtScan({
+        exchange: "BYBIT",
+        settings,
+        persist,
+        alerts,
+      });
+    case "okx":
+      return runExchangeUsdtScan({
+        exchange: "OKX",
+        settings,
+        persist,
+        alerts,
+      });
+    case "kucoin":
+      return runExchangeUsdtScan({
+        exchange: "KUCOIN",
+        settings,
+        persist,
+        alerts,
+      });
+    case "gate":
+      return runExchangeUsdtScan({
+        exchange: "GATE",
+        settings,
+        persist,
+        alerts,
+      });
+    case "mexc":
+      return runExchangeUsdtScan({
+        exchange: "MEXC",
+        settings,
+        persist,
+        alerts,
+      });
+    case "bitget":
+      return runExchangeUsdtScan({
+        exchange: "BITGET",
+        settings,
+        persist,
+        alerts,
+      });
     case "multi":
       return runMultiExchangeUsdtScan({ settings, persist, alerts });
     case "multi-all":

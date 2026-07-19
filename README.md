@@ -34,6 +34,11 @@ npm run scan -- --universe=top100
 npm run scan -- --universe=top200 --alerts
 npm run scan -- --universe=top500
 npm run scan -- --universe=binance
+npm run scan -- --universe=okx
+npm run scan -- --universe=kucoin
+npm run scan -- --universe=gate
+npm run scan -- --universe=mexc
+npm run scan -- --universe=bitget
 npm run scan -- --universe=multi
 npm run scan -- --universe=multi-all
 npm run scan -- --universe=ai
@@ -47,11 +52,11 @@ npm run scan -- --universe=social
 
 The repository includes `.github/workflows/scan.yml`.
 
-- Scheduled runs use the `multi-all` universe and send Telegram alerts by default.
-- Scheduled runs allow partial multi-exchange coverage so cloud IP blocks do not stop automation; the scan note reports any skipped source.
+- Scheduled runs scan Binance, Bybit, OKX, KuCoin, Gate.io, MEXC, and Bitget as separate parallel jobs with Telegram alerts by default.
+- Scheduled exchange jobs are isolated, so one blocked or slow exchange does not stop the other exchanges.
 - Scheduled runs print batch progress logs with `SCAN_PROGRESS_LOGS=true`.
 - Manual runs can be started from `GitHub -> Actions -> Crypto Scan -> Run workflow`.
-- Manual runs let you choose `default`, `top100`, `top200`, `top500`, `binance`, `multi`, `multi-all`, category, trending, recent, events, or social universes.
+- Manual runs let you choose `default`, `top100`, `top200`, `top500`, `binance`, single-exchange, `multi`, `multi-all`, category, trending, recent, events, or social universes.
 
 Add these repository secrets before enabling automation:
 
@@ -73,6 +78,12 @@ GitHub path:
 - `POST /api/scan?universe=top200&persist=true&alerts=true`
 - `POST /api/scan?universe=top500&persist=true`
 - `POST /api/scan?universe=binance`
+- `POST /api/scan?universe=bybit`
+- `POST /api/scan?universe=okx`
+- `POST /api/scan?universe=kucoin`
+- `POST /api/scan?universe=gate`
+- `POST /api/scan?universe=mexc`
+- `POST /api/scan?universe=bitget`
 - `POST /api/scan?universe=multi`
 - `POST /api/scan?universe=multi-all`
 - `POST /api/scan?universe=ai`

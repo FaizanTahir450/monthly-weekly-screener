@@ -16,6 +16,12 @@ on:
           - top200
           - top500
           - binance
+          - bybit
+          - okx
+          - kucoin
+          - gate
+          - mexc
+          - bitget
           - multi
           - multi-all
           - ai
@@ -33,11 +39,12 @@ on:
         type: boolean
 
 jobs:
-  scan:
+  scan-manual:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     env:
-      SCAN_UNIVERSE: ${{ github.event_name == 'workflow_dispatch' && inputs.universe || 'multi-all' }}
-      SCAN_ALERTS: ${{ github.event_name == 'schedule' && 'true' || inputs.alerts }}
+      SCAN_UNIVERSE: ${{ inputs.universe }}
+      SCAN_ALERTS: ${{ inputs.alerts }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -57,4 +64,34 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           MULTI_EXCHANGE_ALLOW_PARTIAL: "true"
+          SCAN_PROGRESS_LOGS: "true"
+
+  scan-scheduled:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        universe:
+          - binance
+          - bybit
+          - okx
+          - kucoin
+          - gate
+          - mexc
+          - bitget
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run scan -- --universe="${{ matrix.universe }}" --alerts
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           SCAN_PROGRESS_LOGS: "true"

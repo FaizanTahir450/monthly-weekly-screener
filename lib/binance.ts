@@ -1,6 +1,14 @@
 import type { Candle } from "./indicators.ts";
 
-const BINANCE_SPOT_BASE_URL = "https://api.binance.com";
+const DEFAULT_BINANCE_SPOT_BASE_URLS = [
+  "https://data-api.binance.vision",
+  "https://api.binance.com",
+  "https://api-gcp.binance.com",
+  "https://api1.binance.com",
+  "https://api2.binance.com",
+  "https://api3.binance.com",
+  "https://api4.binance.com",
+];
 
 export type BinanceInterval = "1w" | "1M";
 
@@ -44,10 +52,10 @@ export async function getKlines(
     interval,
     limit: String(limit),
   });
-  const url = `${BINANCE_SPOT_BASE_URL}/api/v3/klines?${params.toString()}`;
-  const response = await fetch(url, {
-    next: { revalidate: 60 },
-  });
+  const response = await fetchBinanceMarketData(
+    `/api/v3/klines?${params.toString()}`,
+    { next: { revalidate: 60 } },
+  );
 
   if (!response.ok) {
     throw new Error(
@@ -75,7 +83,7 @@ export async function getBinanceUsdtSpotSymbols(): Promise<Set<string>> {
 export async function getBinanceUsdtSpotMarkets(): Promise<
   BinanceUsdtSpotMarket[]
 > {
-  const response = await fetch(`${BINANCE_SPOT_BASE_URL}/api/v3/exchangeInfo`, {
+  const response = await fetchBinanceMarketData("/api/v3/exchangeInfo", {
     cache: "no-store",
   });
 
@@ -98,6 +106,50 @@ export async function getBinanceUsdtSpotMarkets(): Promise<
       baseAsset: symbol.baseAsset,
     }))
     .sort((first, second) => first.symbol.localeCompare(second.symbol));
+}
+
+async function fetchBinanceMarketData(path: string, init: RequestInit) {
+  let lastError: unknown;
+  let lastResponse: Response | null = null;
+
+  for (const baseUrl of getBinanceBaseUrls()) {
+    try {
+      const response = await fetch(`${baseUrl}${path}`, init);
+
+      if (response.ok) {
+        return response;
+      }
+
+      lastResponse = response;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (lastResponse) {
+    return lastResponse;
+  }
+
+  throw new Error(
+    `Binance market data request failed: ${
+      lastError instanceof Error ? lastError.message : "Unknown network error"
+    }`,
+  );
+}
+
+function getBinanceBaseUrls() {
+  const configured = process.env.BINANCE_SPOT_BASE_URLS
+    ?.split(",")
+    .map((url) => url.trim())
+    .filter(Boolean);
+
+  return Array.from(
+    new Set(
+      configured && configured.length > 0
+        ? configured
+        : DEFAULT_BINANCE_SPOT_BASE_URLS,
+    ),
+  );
 }
 
 function normalizeKline(kline: BinanceKline): Candle {

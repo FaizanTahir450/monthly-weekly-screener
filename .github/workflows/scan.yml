@@ -17,6 +17,7 @@ on:
           - top500
           - binance
           - multi
+          - multi-all
           - ai
           - gaming
           - rwa
@@ -35,7 +36,7 @@ jobs:
   scan:
     runs-on: ubuntu-latest
     env:
-      SCAN_UNIVERSE: ${{ github.event_name == 'workflow_dispatch' && inputs.universe || 'multi' }}
+      SCAN_UNIVERSE: ${{ github.event_name == 'workflow_dispatch' && inputs.universe || 'multi-all' }}
       SCAN_ALERTS: ${{ github.event_name == 'schedule' && 'true' || inputs.alerts }}
     steps:
       - uses: actions/checkout@v4
@@ -56,3 +57,4 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           MULTI_EXCHANGE_ALLOW_PARTIAL: "true"
+          SCAN_PROGRESS_LOGS: "true"

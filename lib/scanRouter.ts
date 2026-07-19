@@ -16,6 +16,7 @@ export type ScanUniverseParam =
   | "top500"
   | "binance"
   | "multi"
+  | "multi-all"
   | "ai"
   | "gaming"
   | "rwa"
@@ -32,6 +33,7 @@ export const scanUniverses: ScanUniverseParam[] = [
   "top500",
   "binance",
   "multi",
+  "multi-all",
   "ai",
   "gaming",
   "rwa",
@@ -64,6 +66,13 @@ export async function runScanForUniverse({
       return runAllBinanceUsdtScan({ settings, persist, alerts });
     case "multi":
       return runMultiExchangeUsdtScan({ settings, persist, alerts });
+    case "multi-all":
+      return runMultiExchangeUsdtScan({
+        settings,
+        persist,
+        alerts,
+        allMarkets: true,
+      });
     case "ai":
     case "gaming":
     case "rwa":

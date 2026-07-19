@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { backtestSignals } from "@/lib/backtest";
-import { getExchangeWeeklyCandles, type ExchangeId } from "@/lib/exchanges";
+import { getExchangeWeeklyCandles, normalizeExchangeId } from "@/lib/exchanges";
 import { loadSavedSignalRows } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +32,7 @@ export async function GET() {
   if (savedSignals.rows.length > 0) {
     const signals = await Promise.all(
       savedSignals.rows.map(async (row) => {
-        const exchange = normalizeExchange(row.exchange);
+        const exchange = normalizeExchangeId(row.exchange);
         const sourceSymbol = row.source_symbol ?? row.symbol;
         const candles = await getExchangeWeeklyCandles({
           exchange,
@@ -71,8 +71,4 @@ export async function GET() {
       "No saved Supabase SIGNAL rows found yet, so sample signals are shown.",
     ...backtestSignals(sampleSignals),
   });
-}
-
-function normalizeExchange(exchange: string | null): ExchangeId {
-  return exchange === "BYBIT" || exchange === "OKX" ? exchange : "BINANCE";
 }

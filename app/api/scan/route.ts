@@ -26,7 +26,7 @@ export async function POST(request: Request) {
 
 export function GET() {
   return NextResponse.json({
-    message: "Use POST /api/scan to run a manual Binance scan.",
+    message: "Use POST /api/scan to run a manual scan.",
     universes: scanUniverses,
     symbols: defaultScanCoins.map((coin) => coin.symbol),
   });

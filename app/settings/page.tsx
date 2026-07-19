@@ -205,6 +205,7 @@ const universeOptions: {
   { value: "top500", label: "Top 500 CG" },
   { value: "binance", label: "All Binance USDT" },
   { value: "multi", label: "Multi-Exchange USDT" },
+  { value: "multi-all", label: "Multi-Exchange All Markets" },
   { value: "ai", label: "AI" },
   { value: "gaming", label: "Gaming" },
   { value: "rwa", label: "RWA" },

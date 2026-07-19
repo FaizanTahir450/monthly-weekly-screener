@@ -38,6 +38,8 @@ export type ScanCoin = {
 
 export type ScanResult = {
   coin: string;
+  exchange?: ExchangeId;
+  sourceSymbol?: string;
   ok: boolean;
   data?: {
     name: string;
@@ -64,7 +66,7 @@ export type ScanResult = {
 };
 
 export type ScanResponse = {
-  scanType: "MANUAL_BINANCE_SCAN";
+  scanType: "MANUAL_SCAN";
   startedAt: string;
   finishedAt: string;
   coinsScanned: number;
@@ -75,6 +77,7 @@ export type ScanResponse = {
     | "TOP_500"
     | "BINANCE_USDT"
     | "MULTI_EXCHANGE_USDT"
+    | "MULTI_EXCHANGE_ALL_MARKETS"
     | "AI"
     | "GAMING"
     | "RWA"
@@ -133,7 +136,7 @@ export async function runManualScan({
   const finishedAt = new Date().toISOString();
 
   const scan: ScanResponse = {
-    scanType: "MANUAL_BINANCE_SCAN",
+    scanType: "MANUAL_SCAN",
     startedAt,
     finishedAt,
     coinsScanned: coins.length,
@@ -179,9 +182,35 @@ async function scanCoinsInBatches(
       ),
     );
     results.push(...batchResults);
+    logScanProgress({
+      scanned: Math.min(index + batch.length, coins.length),
+      total: coins.length,
+      succeeded: results.filter((result) => result.ok).length,
+      failed: results.filter((result) => !result.ok).length,
+    });
   }
 
   return results;
+}
+
+function logScanProgress({
+  scanned,
+  total,
+  succeeded,
+  failed,
+}: {
+  scanned: number;
+  total: number;
+  succeeded: number;
+  failed: number;
+}) {
+  if (process.env.SCAN_PROGRESS_LOGS !== "true") {
+    return;
+  }
+
+  console.error(
+    `[scan] ${scanned}/${total} scanned, ${succeeded} ok, ${failed} failed`,
+  );
 }
 
 function getScanConcurrency(override?: number) {
@@ -272,13 +301,18 @@ export async function runMultiExchangeUsdtScan({
   settings = defaultSettings,
   persist = false,
   alerts = false,
+  allMarkets = false,
 }: {
   settings?: StrategySettings;
   persist?: boolean;
   alerts?: boolean;
+  allMarkets?: boolean;
 } = {}) {
   const allowPartial = allowPartialMultiExchangeScan();
-  const universe = await getMultiExchangeUsdtSpotMarkets({ allowPartial });
+  const universe = await getMultiExchangeUsdtSpotMarkets({
+    allowPartial,
+    dedupe: !allMarkets,
+  });
   const coins = universe.markets.map((market) => ({
     name: market.baseAsset,
     symbol: market.symbol,
@@ -291,10 +325,13 @@ export async function runMultiExchangeUsdtScan({
     ...settings,
     topMarketCapFilter: false,
   };
+  logUniverseProgress(
+    `Loaded ${universe.counts.selected} selected markets from ${universe.counts.unique} unique symbols.`,
+  );
   const scan = await runManualScan({
     coins,
     settings: scanSettings,
-    universe: "MULTI_EXCHANGE_USDT",
+    universe: allMarkets ? "MULTI_EXCHANGE_ALL_MARKETS" : "MULTI_EXCHANGE_USDT",
     persist,
     alerts,
     concurrency: getMultiExchangeScanConcurrency(),
@@ -308,9 +345,21 @@ export async function runMultiExchangeUsdtScan({
   const coverageNote = allowPartial
     ? " Partial source mode is enabled."
     : " All exchange sources are required before scanning.";
-  scan.note = `Multi-exchange scan loaded ${universe.counts.unique} unique USDT spot symbols across Binance (${universe.counts.binance}), Bybit (${universe.counts.bybit}), and OKX (${universe.counts.okx}). Duplicates prefer Binance, then Bybit, then OKX. Market-cap filtering is disabled for this universe.${coverageNote}${unavailableNote}`;
+  const modeNote = allMarkets
+    ? ` Selected ${universe.counts.selected} exchange markets for full per-exchange coverage.`
+    : " Duplicate symbols prefer Binance, then Bybit, OKX, KuCoin, Gate.io, MEXC, and Bitget.";
+  scan.note = `Multi-exchange scan loaded ${universe.counts.unique} unique USDT spot symbols across Binance (${universe.counts.binance}), Bybit (${universe.counts.bybit}), OKX (${universe.counts.okx}), KuCoin (${universe.counts.kucoin}), Gate.io (${universe.counts.gate}), MEXC (${universe.counts.mexc}), and Bitget (${universe.counts.bitget}).${modeNote} Market-cap filtering is disabled for this universe.${coverageNote}${unavailableNote}`;
+  logUniverseProgress(scan.note);
 
   return scan;
+}
+
+function logUniverseProgress(message: string) {
+  if (process.env.SCAN_PROGRESS_LOGS !== "true") {
+    return;
+  }
+
+  console.error(`[scan] ${message}`);
 }
 
 export async function runCategoryScan({
@@ -454,6 +503,8 @@ async function scanCoin(
 
     return {
       coin: coin.symbol,
+      exchange,
+      sourceSymbol,
       ok: true,
       data: {
         name: coin.name,
@@ -480,6 +531,8 @@ async function scanCoin(
   } catch (error) {
     return {
       coin: coin.symbol,
+      exchange: coin.exchange ?? "BINANCE",
+      sourceSymbol: coin.sourceSymbol ?? coin.symbol,
       ok: false,
       error: error instanceof Error ? error.message : "Unknown scan error",
     };

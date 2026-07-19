@@ -2,7 +2,7 @@ create extension if not exists pgcrypto;
 
 create table if not exists coins (
   id uuid primary key default gen_random_uuid(),
-  symbol text not null unique,
+  symbol text not null,
   name text not null,
   coingecko_id text,
   market_cap_rank integer,
@@ -57,11 +57,21 @@ alter table coins
 alter table coins
   alter column binance_symbol drop not null;
 
+alter table coins
+  alter column exchange set default 'BINANCE';
+
+alter table coins
+  drop constraint if exists coins_symbol_key;
+
 update coins
 set
   exchange = coalesce(exchange, 'BINANCE'),
   source_symbol = coalesce(source_symbol, binance_symbol, symbol)
 where exchange is null or source_symbol is null;
+
+alter table coins
+  alter column exchange set not null,
+  alter column source_symbol set not null;
 
 alter table scans
   add column if not exists universe text;
@@ -105,6 +115,41 @@ from (
 ) ranked_signal_results
 where row_number = 1;
 
+create or replace view latest_signal_results_by_exchange as
+select
+  id,
+  coin_id,
+  symbol,
+  exchange,
+  source_symbol,
+  price,
+  monthly_rsi,
+  rsi_zone,
+  weekly_open,
+  weekly_close,
+  weekly_high,
+  weekly_low,
+  previous_red_high,
+  close_break_confirmed,
+  weekly_green_confirmed,
+  volume_confirmed,
+  stars,
+  status,
+  reason,
+  scan_id,
+  created_at
+from (
+  select
+    signal_results.*,
+    row_number() over (
+      partition by symbol, exchange, source_symbol
+      order by created_at desc, id desc
+    ) as row_number
+  from signal_results
+  where status in ('SIGNAL', 'WATCHLIST')
+) ranked_signal_results
+where row_number = 1;
+
 create table if not exists strategy_settings (
   id uuid primary key default gen_random_uuid(),
   key text not null unique,
@@ -132,7 +177,13 @@ create index if not exists idx_signal_results_symbol_created_at
 create index if not exists idx_signal_results_symbol_status_created_at
   on signal_results(symbol, status, created_at desc);
 
+create index if not exists idx_signal_results_exchange_source_created_at
+  on signal_results(exchange, source_symbol, created_at desc);
+
 create index if not exists idx_coins_exchange_source_symbol
+  on coins(exchange, source_symbol);
+
+create unique index if not exists idx_coins_exchange_source_symbol_unique
   on coins(exchange, source_symbol);
 
 create index if not exists idx_scans_started_at

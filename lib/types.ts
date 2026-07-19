@@ -34,6 +34,7 @@ export type AutomationSettings = {
     | "top500"
     | "binance"
     | "multi"
+    | "multi-all"
     | "ai"
     | "gaming"
     | "rwa"

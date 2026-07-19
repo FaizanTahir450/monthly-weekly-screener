@@ -5,7 +5,7 @@ A Next.js crypto value screener for monthly RSI value zones and weekly close-bre
 ## Features
 
 - Dark dashboard UI with Dashboard, Live Signals, Saved Results, Live Watchlist, Scan Logs, Backtest, Settings, and Coin Detail pages
-- Binance, Bybit, and OKX spot candle integration for weekly and monthly klines
+- Binance, Bybit, OKX, KuCoin, Gate.io, MEXC, and Bitget spot candle integration for weekly and monthly klines
 - CoinGecko top 100/top 200/top 500, category, and trending universe support matched to Binance USDT spot symbols
 - All-Binance and multi-exchange USDT universe support
 - Strategy engine with ON/OFF conditions
@@ -35,6 +35,7 @@ npm run scan -- --universe=top200 --alerts
 npm run scan -- --universe=top500
 npm run scan -- --universe=binance
 npm run scan -- --universe=multi
+npm run scan -- --universe=multi-all
 npm run scan -- --universe=ai
 npm run scan -- --universe=trending
 npm run scan -- --universe=recent
@@ -46,10 +47,11 @@ npm run scan -- --universe=social
 
 The repository includes `.github/workflows/scan.yml`.
 
-- Scheduled runs use the `multi` universe and send Telegram alerts by default.
+- Scheduled runs use the `multi-all` universe and send Telegram alerts by default.
 - Scheduled runs allow partial multi-exchange coverage so cloud IP blocks do not stop automation; the scan note reports any skipped source.
+- Scheduled runs print batch progress logs with `SCAN_PROGRESS_LOGS=true`.
 - Manual runs can be started from `GitHub -> Actions -> Crypto Scan -> Run workflow`.
-- Manual runs let you choose `default`, `top100`, `top200`, `top500`, `binance`, `multi`, category, trending, recent, events, or social universes.
+- Manual runs let you choose `default`, `top100`, `top200`, `top500`, `binance`, `multi`, `multi-all`, category, trending, recent, events, or social universes.
 
 Add these repository secrets before enabling automation:
 
@@ -72,6 +74,7 @@ GitHub path:
 - `POST /api/scan?universe=top500&persist=true`
 - `POST /api/scan?universe=binance`
 - `POST /api/scan?universe=multi`
+- `POST /api/scan?universe=multi-all`
 - `POST /api/scan?universe=ai`
 - `POST /api/scan?universe=gaming`
 - `POST /api/scan?universe=rwa`
@@ -132,9 +135,11 @@ Run `supabase/schema.sql` in Supabase SQL editor to create:
 - `strategy_settings`
 - `alert_logs`
 - `latest_signal_results` view
+- `latest_signal_results_by_exchange` view
 
-The schema keeps `binance_symbol` as a nullable legacy column, while new
-multi-exchange rows use `exchange` and `source_symbol`.
+The schema keeps `binance_symbol` as a nullable legacy column, while
+multi-exchange rows use `exchange` and `source_symbol`. New coin rows are
+identified by the `(exchange, source_symbol)` pair.
 
 ## Current Limitations
 
@@ -144,6 +149,7 @@ multi-exchange rows use `exchange` and `source_symbol`.
 - Recently listed, event, and social trend universes use env-configured symbol feeds and validate them against Binance USDT spot symbols.
 - Top 100/top 200/top 500/category scans may take longer because they fetch Binance candles per matched symbol.
 - All-Binance scans cover live Binance USDT spot markets and disable market-cap filtering because Binance does not provide market-cap ranks.
-- Multi-exchange scans cover unique USDT spot symbols across Binance, Bybit, and OKX. Duplicate symbols prefer Binance, then Bybit, then OKX. This mode prioritizes coverage over speed: it retries exchange requests, defaults to low concurrency, and requires every exchange source unless `MULTI_EXCHANGE_ALLOW_PARTIAL=true`.
+- `multi` scans cover unique USDT spot symbols across Binance, Bybit, OKX, KuCoin, Gate.io, MEXC, and Bitget. Duplicate symbols prefer Binance, then Bybit, OKX, KuCoin, Gate.io, MEXC, and Bitget.
+- `multi-all` scans every exchange market from every loaded source, including duplicate symbols on different exchanges. This mode prioritizes coverage over speed: it retries exchange requests, defaults to low concurrency, and requires every exchange source unless `MULTI_EXCHANGE_ALLOW_PARTIAL=true`.
 - Binance market data uses official fallback hosts, starting with `https://data-api.binance.vision`, then `api.binance.com`, `api-gcp.binance.com`, and `api1` through `api4`. Override the order with `BINANCE_SPOT_BASE_URLS` if a specific host works better from your runner.
 - Bybit market data uses official mainnet fallback hosts `https://api.bybit.com` and `https://api.bytick.com`. Override the order with `BYBIT_REST_BASE_URLS`.

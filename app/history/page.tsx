@@ -14,6 +14,7 @@ type HistoryPageProps = {
 
 const historyModes = [
   { key: "latest", label: "Latest Unique" },
+  { key: "exchange", label: "Latest By Exchange" },
   { key: "history", label: "All History" },
 ] as const;
 
@@ -49,8 +50,9 @@ export default async function HistoryPage({ searchParams }: HistoryPageProps) {
       <section>
         <h1 className="section-title">Saved Results</h1>
         <p className="section-copy">
-          Latest unique saved rows by default, with full scan history available
-          when you need the raw trail.
+          Latest unique saved rows by default, latest per-exchange rows for
+          full coverage scans, and full scan history when you need the raw
+          trail.
         </p>
       </section>
 
@@ -209,6 +211,7 @@ async function loadSavedResultsSafely(
     return await loadSavedSignalResults({
       limit: 500,
       unique: mode === "latest",
+      byExchange: mode === "exchange",
     });
   } catch (error) {
     return {

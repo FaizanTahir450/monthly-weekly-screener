@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 loadLocalEnv();
+process.env.SCAN_PROGRESS_LOGS ??= "true";
 
 const universeArg = process.argv.find((arg) => arg.startsWith("--universe="));
 const universe = universeArg?.split("=")[1] ?? "default";
@@ -38,6 +39,8 @@ async function main() {
           .slice(0, 10)
           .map((result) => ({
             symbol: result.coin,
+            exchange: result.exchange,
+            sourceSymbol: result.sourceSymbol,
             error: result.error,
           })),
       },

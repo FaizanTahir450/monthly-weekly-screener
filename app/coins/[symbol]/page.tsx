@@ -5,7 +5,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import {
   getExchangeMonthlyCandles,
   getExchangeWeeklyCandles,
-  type ExchangeId,
+  normalizeExchangeId,
 } from "@/lib/exchanges";
 import { averageVolume, findPreviousRedCandle, isGreenCandle, type Candle } from "@/lib/indicators";
 import { defaultSettings } from "@/lib/settings";
@@ -42,7 +42,7 @@ export default async function CoinDetailPage({ params }: CoinDetailPageProps) {
     marketCapRank: 999,
   };
   const savedSource = await loadLatestSignalResultForSymbolSafely(symbol);
-  const exchange = normalizeExchange(savedSource.row?.exchange);
+  const exchange = normalizeExchangeId(savedSource.row?.exchange);
   const sourceSymbol = savedSource.row?.source_symbol ?? symbol;
 
   let weeklyCandles: Candle[];
@@ -218,10 +218,6 @@ async function loadLatestSignalResultForSymbolSafely(
           : "Could not load latest saved source.",
     };
   }
-}
-
-function normalizeExchange(exchange: string | null | undefined): ExchangeId {
-  return exchange === "BYBIT" || exchange === "OKX" ? exchange : "BINANCE";
 }
 
 function SignalHistoryTable({ history }: { history: SignalHistory }) {

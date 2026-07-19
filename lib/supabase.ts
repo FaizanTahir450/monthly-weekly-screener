@@ -42,7 +42,10 @@ export async function saveScanResponse(scan: ScanResponse) {
       coins_scanned: scan.coinsScanned,
       error_message: scan.results
         .filter((result) => !result.ok)
-        .map((result) => `${result.coin}: ${result.error}`)
+        .map(
+          (result) =>
+            `${result.exchange ?? "UNKNOWN"} ${result.sourceSymbol ?? result.coin}: ${result.error}`,
+        )
         .join("\n"),
     },
   ]);
@@ -58,25 +61,38 @@ export async function saveScanResponse(scan: ScanResponse) {
   );
   const coinRows = await upsertRows<{
     id: string;
-    symbol: string;
+    exchange: string;
+    source_symbol: string;
   }>(
     "coins",
-    successfulResults.map((result) => ({
-      symbol: result.data.symbol,
-      name: result.data.name,
-      exchange: result.data.exchange,
-      source_symbol: result.data.sourceSymbol,
-      binance_symbol:
-        result.data.exchange === "BINANCE" ? result.data.sourceSymbol : null,
-      market_cap_rank: result.data.marketCapRank,
-      volume_24h: result.data.volume24h,
-      is_active: true,
-      updated_at: new Date().toISOString(),
-    })),
-    "symbol",
+    Array.from(
+      new Map(
+        successfulResults.map((result) => [
+          getSourceKey(result.data.exchange, result.data.sourceSymbol),
+          {
+            symbol: result.data.symbol,
+            name: result.data.name,
+            exchange: result.data.exchange,
+            source_symbol: result.data.sourceSymbol,
+            binance_symbol:
+              result.data.exchange === "BINANCE"
+                ? result.data.sourceSymbol
+                : null,
+            market_cap_rank: result.data.marketCapRank,
+            volume_24h: result.data.volume24h,
+            is_active: true,
+            updated_at: new Date().toISOString(),
+          },
+        ]),
+      ).values(),
+    ),
+    "exchange,source_symbol",
   );
-  const coinIdsBySymbol = new Map(
-    coinRows.map((row) => [row.symbol, row.id]),
+  const coinIdsBySource = new Map(
+    coinRows.map((row) => [
+      getSourceKey(row.exchange, row.source_symbol),
+      row.id,
+    ]),
   );
   const resultRows = scan.results
     .filter(
@@ -87,7 +103,9 @@ export async function saveScanResponse(scan: ScanResponse) {
       const data = result.data;
 
       return {
-        coin_id: coinIdsBySymbol.get(data.symbol),
+        coin_id: coinIdsBySource.get(
+          getSourceKey(data.exchange, data.sourceSymbol),
+        ),
         symbol: data.symbol,
         exchange: data.exchange,
         source_symbol: data.sourceSymbol,
@@ -355,9 +373,11 @@ export async function loadSavedSignalRows(limit = 50) {
 export async function loadSavedSignalResults({
   limit = 100,
   unique = false,
+  byExchange = false,
 }: {
   limit?: number;
   unique?: boolean;
+  byExchange?: boolean;
 } = {}) {
   if (!isSupabaseConfigured()) {
     return {
@@ -373,9 +393,13 @@ export async function loadSavedSignalResults({
     order: "created_at.desc",
     limit: String(limit),
   });
-  const table = unique ? "latest_signal_results" : "signal_results";
+  const table = byExchange
+    ? "latest_signal_results_by_exchange"
+    : unique
+      ? "latest_signal_results"
+      : "signal_results";
 
-  if (!unique) {
+  if (!unique && !byExchange) {
     params.set("status", "in.(SIGNAL,WATCHLIST)");
   }
 
@@ -676,6 +700,10 @@ async function upsertRows<T>(
   }
 
   return (await response.json()) as T[];
+}
+
+function getSourceKey(exchange: string, sourceSymbol: string) {
+  return `${exchange}:${sourceSymbol}`;
 }
 
 function getRsiZone(monthlyRsi: number | null) {

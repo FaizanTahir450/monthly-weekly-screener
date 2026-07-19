@@ -7,6 +7,7 @@ export type ScanUniverse =
   | "top500"
   | "binance"
   | "multi"
+  | "multi-all"
   | "ai"
   | "gaming"
   | "rwa"
@@ -18,6 +19,8 @@ export type ScanUniverse =
 
 export type ScanResult = {
   coin: string;
+  exchange?: string;
+  sourceSymbol?: string;
   ok: boolean;
   data?: TableCoin;
   error?: string;

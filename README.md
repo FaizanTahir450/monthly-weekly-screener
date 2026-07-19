@@ -47,6 +47,7 @@ npm run scan -- --universe=social
 The repository includes `.github/workflows/scan.yml`.
 
 - Scheduled runs use the `multi` universe and send Telegram alerts by default.
+- Scheduled runs allow partial multi-exchange coverage so cloud IP blocks do not stop automation; the scan note reports any skipped source.
 - Manual runs can be started from `GitHub -> Actions -> Crypto Scan -> Run workflow`.
 - Manual runs let you choose `default`, `top100`, `top200`, `top500`, `binance`, `multi`, category, trending, recent, events, or social universes.
 

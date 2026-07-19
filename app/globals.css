@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #080d14;
+  color: #e5edf7;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+@layer components {
+  .page-shell {
+    @apply min-h-screen bg-[#080d14] text-slate-100;
+  }
+
+  .content-shell {
+    @apply mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8;
+  }
+
+  .section-title {
+    @apply text-2xl font-semibold tracking-normal text-white;
+  }
+
+  .section-copy {
+    @apply mt-1 max-w-3xl text-sm leading-6 text-slate-400;
+  }
+
+  .panel {
+    @apply rounded-lg border border-line bg-panel shadow-soft;
+  }
+}

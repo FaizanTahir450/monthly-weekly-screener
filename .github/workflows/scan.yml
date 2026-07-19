@@ -1,0 +1,57 @@
+name: Crypto Scan
+
+on:
+  schedule:
+    - cron: "10 1 * * *"
+  workflow_dispatch:
+    inputs:
+      universe:
+        description: "Coin universe"
+        required: false
+        default: "default"
+        type: choice
+        options:
+          - default
+          - top100
+          - top200
+          - top500
+          - binance
+          - multi
+          - ai
+          - gaming
+          - rwa
+          - meme
+          - trending
+          - recent
+          - events
+          - social
+      alerts:
+        description: "Send Telegram alerts"
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    env:
+      SCAN_UNIVERSE: ${{ github.event_name == 'workflow_dispatch' && inputs.universe || 'multi' }}
+      SCAN_ALERTS: ${{ github.event_name == 'schedule' && 'true' || inputs.alerts }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: |
+          if [ "$SCAN_ALERTS" = "true" ]; then
+            npm run scan -- --universe="$SCAN_UNIVERSE" --alerts
+          else
+            npm run scan -- --universe="$SCAN_UNIVERSE"
+          fi
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}

@@ -145,3 +145,4 @@ multi-exchange rows use `exchange` and `source_symbol`.
 - All-Binance scans cover live Binance USDT spot markets and disable market-cap filtering because Binance does not provide market-cap ranks.
 - Multi-exchange scans cover unique USDT spot symbols across Binance, Bybit, and OKX. Duplicate symbols prefer Binance, then Bybit, then OKX. This mode prioritizes coverage over speed: it retries exchange requests, defaults to low concurrency, and requires every exchange source unless `MULTI_EXCHANGE_ALLOW_PARTIAL=true`.
 - Binance market data uses official fallback hosts, starting with `https://data-api.binance.vision`, then `api.binance.com`, `api-gcp.binance.com`, and `api1` through `api4`. Override the order with `BINANCE_SPOT_BASE_URLS` if a specific host works better from your runner.
+- Bybit market data uses official mainnet fallback hosts `https://api.bybit.com` and `https://api.bytick.com`. Override the order with `BYBIT_REST_BASE_URLS`.

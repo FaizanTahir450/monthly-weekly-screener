@@ -5,7 +5,10 @@ import {
 } from "./binance.ts";
 import type { Candle } from "./indicators.ts";
 
-const BYBIT_BASE_URL = "https://api.bybit.com";
+const DEFAULT_BYBIT_REST_BASE_URLS = [
+  "https://api.bybit.com",
+  "https://api.bytick.com",
+];
 const DEFAULT_OKX_REST_BASE_URL = "https://openapi.okx.com";
 const FALLBACK_OKX_REST_BASE_URL = "https://www.okx.com";
 const DEFAULT_EXCHANGE_RETRY_ATTEMPTS = 6;
@@ -262,8 +265,8 @@ async function getBybitUsdtSpotMarkets(): Promise<ExchangeMarket[]> {
       params.set("cursor", cursor);
     }
 
-    const response = await fetch(
-      `${BYBIT_BASE_URL}/v5/market/instruments-info?${params.toString()}`,
+    const response = await fetchBybit(
+      `/v5/market/instruments-info?${params.toString()}`,
       { next: { revalidate: 900 } },
     );
 
@@ -339,8 +342,8 @@ async function getBybitCandles(
     interval,
     limit: String(limit),
   });
-  const response = await fetch(
-    `${BYBIT_BASE_URL}/v5/market/kline?${params.toString()}`,
+  const response = await fetchBybit(
+    `/v5/market/kline?${params.toString()}`,
     { next: { revalidate: 60 } },
   );
 
@@ -406,6 +409,46 @@ async function getOkxCandles(
       closeTime: getCloseTime(Number(candle[0]), bar),
     }))
     .sort((first, second) => first.openTime - second.openTime);
+}
+
+async function fetchBybit(path: string, init: RequestInit) {
+  let lastError: unknown;
+  let lastResponse: Response | null = null;
+
+  for (const baseUrl of getBybitBaseUrls()) {
+    try {
+      const response = await fetch(`${baseUrl}${path}`, init);
+
+      if (response.ok) {
+        return response;
+      }
+
+      lastResponse = response;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (lastResponse) {
+    return lastResponse;
+  }
+
+  throw new Error(`Bybit request failed: ${formatError(lastError)}`);
+}
+
+function getBybitBaseUrls() {
+  const configured = process.env.BYBIT_REST_BASE_URLS
+    ?.split(",")
+    .map((url) => url.trim())
+    .filter(Boolean);
+
+  return Array.from(
+    new Set(
+      configured && configured.length > 0
+        ? configured
+        : DEFAULT_BYBIT_REST_BASE_URLS,
+    ),
+  );
 }
 
 async function fetchOkx(path: string, params: URLSearchParams) {
